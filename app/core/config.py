@@ -1,7 +1,7 @@
-"""Application configuration management."""
+# app/core/config.py - Simplified version
 
 import os
-from typing import Optional
+from typing import Optional, List
 from pydantic_settings import BaseSettings
 from pydantic import Field
 
@@ -29,31 +29,28 @@ class Settings(BaseSettings):
     )
     JWT_ALGORITHM: str = "HS256"
     JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = Field(
-        default=1440,  # 24 hours
+        default=1440,
         env="JWT_ACCESS_TOKEN_EXPIRE_MINUTES"
     )
     
-    # Security - Password hashing
     BCRYPT_ROUNDS: int = Field(default=12, env="BCRYPT_ROUNDS")
     
-    # CORS
-    CORS_ORIGINS: list[str] = Field(
-        default=["http://localhost:3000", "http://localhost:5173"],
+    # CORS - Simple string, split on commas
+    CORS_ORIGINS: str = Field(
+        default="http://localhost:3000,http://localhost:5173",
         env="CORS_ORIGINS"
     )
     
+    def get_cors_origins(self) -> List[str]:
+        """Get CORS origins as a list."""
+        return [origin.strip() for origin in self.CORS_ORIGINS.split(",") if origin.strip()]
+    
     # Business rules
     LOW_STOCK_THRESHOLD: int = Field(default=10, env="LOW_STOCK_THRESHOLD")
-    
-    # Frontend URL (for receipts, links, etc.)
-    FRONTEND_URL: str = Field(
-        default="http://localhost:5173",
-        env="FRONTEND_URL"
-    )
+    FRONTEND_URL: str = Field(default="http://localhost:5173", env="FRONTEND_URL")
     
     class Config:
         env_file = ".env"
         case_sensitive = True
 
-# Create global settings instance
 settings = Settings()
