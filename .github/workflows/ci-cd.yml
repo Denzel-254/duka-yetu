@@ -56,10 +56,58 @@ jobs:
           done
           echo "PostgreSQL is ready!"
 
+      - name: Create alembic.ini
+        run: |
+          cat > alembic.ini << 'ALEMBIC'
+          [alembic]
+          script_location = migrations
+          prepend_sys_path = .
+          version_path_separator = os
+          sqlalchemy.url = postgresql://postgres:postgres@localhost:5432/test_db
+
+          [loggers]
+          keys = root,sqlalchemy,alembic
+
+          [handlers]
+          keys = console
+
+          [formatters]
+          keys = generic
+
+          [logger_root]
+          level = WARN
+          handlers = console
+          qualname =
+
+          [logger_sqlalchemy]
+          level = WARN
+          handlers =
+          qualname = sqlalchemy.engine
+
+          [logger_alembic]
+          level = INFO
+          handlers =
+          qualname = alembic
+
+          [handler_console]
+          class = StreamHandler
+          args = (sys.stderr,)
+          level = NOTSET
+          formatter = generic
+
+          [formatter_generic]
+          format = %(levelname)-5.5s [%(name)s] %(message)s
+          datefmt = %H:%M:%S
+          ALEMBIC
+          
+          echo "✅ alembic.ini created"
+          cat alembic.ini | head -5
+
       - name: Run migrations
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
-        run: alembic upgrade head
+        run: |
+          alembic upgrade head
 
       - name: Run tests
         env:
