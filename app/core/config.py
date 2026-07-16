@@ -1,4 +1,4 @@
-# app/core/config.py - Simplified version
+"""Application configuration management."""
 
 import os
 from typing import Optional, List
@@ -35,19 +35,34 @@ class Settings(BaseSettings):
     
     BCRYPT_ROUNDS: int = Field(default=12, env="BCRYPT_ROUNDS")
     
-    # CORS - Simple string, split on commas
+    # CORS
     CORS_ORIGINS: str = Field(
-        default="http://localhost:3000,http://localhost:5173",
+        default="*",
         env="CORS_ORIGINS"
     )
     
-    def get_cors_origins(self) -> List[str]:
-        """Get CORS origins as a list."""
-        return [origin.strip() for origin in self.CORS_ORIGINS.split(",") if origin.strip()]
+    # Cloudinary
+    CLOUDINARY_CLOUD_NAME: str = Field(
+        default="your_cloud_name",
+        env="CLOUDINARY_CLOUD_NAME"
+    )
+    CLOUDINARY_API_KEY: str = Field(
+        default="your_api_key",
+        env="CLOUDINARY_API_KEY"
+    )
+    CLOUDINARY_API_SECRET: str = Field(
+        default="your_api_secret",
+        env="CLOUDINARY_API_SECRET"
+    )
     
-    # Business rules
     LOW_STOCK_THRESHOLD: int = Field(default=10, env="LOW_STOCK_THRESHOLD")
     FRONTEND_URL: str = Field(default="http://localhost:5173", env="FRONTEND_URL")
+    
+    def get_cors_origins(self) -> List[str]:
+        """Get CORS origins as a list."""
+        if self.CORS_ORIGINS == "*":
+            return ["*"]
+        return [origin.strip() for origin in self.CORS_ORIGINS.split(",") if origin.strip()]
     
     class Config:
         env_file = ".env"

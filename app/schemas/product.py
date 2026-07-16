@@ -14,17 +14,16 @@ class ProductBase(BaseModel):
     cost_price: Optional[Decimal] = Field(None, ge=0)
     stock_quantity: int = Field(0, ge=0)
     description: Optional[str] = Field(None, max_length=500)
+    image_url: Optional[str] = Field(None, max_length=500)
     
     @validator('selling_price')
     def validate_selling_price(cls, v):
-        """Validate selling price."""
         if v <= 0:
             raise ValueError('Selling price must be greater than 0')
         return round(v, 2)
     
     @validator('cost_price')
     def validate_cost_price(cls, v):
-        """Validate cost price."""
         if v is not None:
             if v < 0:
                 raise ValueError('Cost price cannot be negative')
@@ -43,11 +42,11 @@ class ProductUpdate(BaseModel):
     cost_price: Optional[Decimal] = Field(None, ge=0)
     stock_quantity: Optional[int] = Field(None, ge=0)
     description: Optional[str] = Field(None, max_length=500)
+    image_url: Optional[str] = Field(None, max_length=500)
     is_active: Optional[bool] = None
     
     @validator('selling_price')
     def validate_selling_price(cls, v):
-        """Validate selling price."""
         if v is not None:
             if v <= 0:
                 raise ValueError('Selling price must be greater than 0')
@@ -56,22 +55,15 @@ class ProductUpdate(BaseModel):
     
     @validator('cost_price')
     def validate_cost_price(cls, v):
-        """Validate cost price."""
         if v is not None:
             if v < 0:
                 raise ValueError('Cost price cannot be negative')
             return round(v, 2)
         return v
 
-class ProductResponse(BaseModel):
+class ProductResponse(ProductBase):
     """Product response."""
-    id: str  # Changed to str
-    name: str
-    sku: str
-    selling_price: Decimal
-    cost_price: Optional[Decimal]
-    stock_quantity: int
-    description: Optional[str]
+    id: str
     is_active: bool
     created_at: datetime
     updated_at: datetime
@@ -80,7 +72,6 @@ class ProductResponse(BaseModel):
     
     @validator('id', pre=True)
     def convert_uuid_to_str(cls, v):
-        """Convert UUID to string."""
         if isinstance(v, UUID):
             return str(v)
         return v

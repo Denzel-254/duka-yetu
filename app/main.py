@@ -7,7 +7,7 @@ from datetime import datetime
 
 from app.core.config import settings
 from app.core.database import init_db
-from app.api import auth, products, sales, dashboard
+from app.api import auth, products, sales, dashboard, upload
 from app.domains.users.routes import router as users_router
 
 # Create FastAPI app
@@ -19,10 +19,10 @@ app = FastAPI(
     redoc_url="/redoc" if settings.DEBUG else None,
 )
 
-# CORS middleware
+# CORS middleware - Allow all origins for development
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.get_cors_origins() if hasattr(settings, 'get_cors_origins') else ["*"],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -31,7 +31,7 @@ app.add_middleware(
 # Trusted host middleware (security)
 app.add_middleware(
     TrustedHostMiddleware,
-    allowed_hosts=["*"] if settings.DEBUG else settings.CORS_ORIGINS,
+    allowed_hosts=["*"] if settings.DEBUG else ["*"],
 )
 
 # Include routers
@@ -40,6 +40,8 @@ app.include_router(products.router, prefix="/api/v1/products", tags=["Products"]
 app.include_router(sales.router, prefix="/api/v1/sales", tags=["Sales"])
 app.include_router(dashboard.router, prefix="/api/v1/dashboard", tags=["Dashboard"])
 app.include_router(users_router, prefix="/api/v1", tags=["Users"])
+app.include_router(upload.router, prefix="/api/v1/upload", tags=["Upload"])
+
 
 @app.on_event("startup")
 async def startup_event():

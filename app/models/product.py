@@ -22,6 +22,7 @@ class Product(Base):
     cost_price = Column(Numeric(10, 2))
     stock_quantity = Column(Integer, default=0, nullable=False)
     description = Column(String(500))
+    image_url = Column(String(500))
     is_active = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
