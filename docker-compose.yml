@@ -29,7 +29,6 @@ services:
       - CLOUDINARY_API_KEY=${CLOUDINARY_API_KEY}
       - CLOUDINARY_API_SECRET=${CLOUDINARY_API_SECRET}
       - CLOUDINARY_UPLOAD_PRESET=duka_yetu
-
     depends_on:
       db:
         condition: service_healthy
@@ -42,6 +41,20 @@ services:
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     networks:
       - duka-network
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    ports:
+      - "3000:80"
+    environment:
+      - VITE_API_URL=https://cautious-lamp-4jwpwqrgrw4jf7pvx-8001.app.github.dev/api/v1
+    depends_on:
+      - api
+    networks:
+      - duka-network
+    restart: unless-stopped
 
 volumes:
   duka_postgres_data:
