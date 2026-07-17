@@ -42,7 +42,7 @@ async def create_product(
             detail=f"Product with SKU '{product_data.sku}' already exists"
         )
     
-    # Create product
+    # Create product - NOW INCLUDING image_url
     product = Product(
         business_id=current_user.business_id,
         name=product_data.name,
@@ -51,6 +51,7 @@ async def create_product(
         cost_price=product_data.cost_price,
         stock_quantity=product_data.stock_quantity,
         description=product_data.description,
+        image_url=product_data.image_url,  # ← THIS WAS MISSING!
         is_active=True,
     )
     

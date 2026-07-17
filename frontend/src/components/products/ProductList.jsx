@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { FaSearch, FaEdit, FaTrash, FaPlus, FaTimes } from 'react-icons/fa';
+import { FaSearch, FaEdit, FaTrash, FaPlus, FaImage } from 'react-icons/fa';
 import { toast } from 'react-hot-toast';
 import useProductStore from '../../store/productStore';
 import useAuthStore from '../../store/authStore';
 import ProductForm from './ProductForm';
+import { formatCurrency } from '../../utils/helpers';
 
 const ProductList = () => {
   const [showForm, setShowForm] = useState(false);
@@ -98,21 +99,21 @@ const ProductList = () => {
                   >
                     <td className="py-3 px-4">
                       {product.image_url ? (
-                        <img 
-                          src={product.image_url} 
-                          alt={product.name} 
+                        <img
+                          src={product.image_url}
+                          alt={product.name}
                           className="w-12 h-12 rounded-lg object-cover"
                         />
                       ) : (
                         <div className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center text-gray-400 text-xs">
-                          No img
+                          <FaImage />
                         </div>
                       )}
                     </td>
                     <td className="py-3 px-4 text-sm font-medium">{product.name}</td>
                     <td className="py-3 px-4 text-sm text-gray-500">{product.sku}</td>
                     <td className="py-3 px-4 text-sm text-right font-medium">
-                      KES {product.selling_price}
+                      {formatCurrency(product.selling_price)}
                     </td>
                     <td className="py-3 px-4 text-sm text-right">
                       <span className={`inline-block px-2 py-1 rounded-full text-xs ${

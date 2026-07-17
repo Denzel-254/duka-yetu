@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { FaPlus, FaSearch, FaEdit, FaTrash, FaTimes } from 'react-icons/fa';
+import { FaPlus, FaSearch, FaEdit, FaTrash, FaTimes, FaImage } from 'react-icons/fa';
 import { toast } from 'react-hot-toast';
 import useProductStore from '../store/productStore';
 import useAuthStore from '../store/authStore';
 import ProductForm from '../components/products/ProductForm';
+import { formatCurrency } from '../utils/helpers';
 
 const ProductsPage = () => {
   const [showForm, setShowForm] = useState(false);
@@ -65,119 +66,117 @@ const ProductsPage = () => {
           />
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-gray-200">
-                <th className="text-left py-3 px-2 text-sm font-medium text-gray-500">Name</th>
-                <th className="text-left py-3 px-2 text-sm font-medium text-gray-500">SKU</th>
-                <th className="text-right py-3 px-2 text-sm font-medium text-gray-500">Price</th>
-                <th className="text-right py-3 px-2 text-sm font-medium text-gray-500">Stock</th>
-                {isOwner && <th className="text-right py-3 px-2 text-sm font-medium text-gray-500">Actions</th>}
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr>
-                  <td colSpan={isOwner ? 5 : 4} className="text-center py-8 text-gray-400">
-                    Loading...
-                  </td>
-                </tr>
-              ) : products.length === 0 ? (
-                <tr>
-                  <td colSpan={isOwner ? 5 : 4} className="text-center py-8 text-gray-400">
-                    No products found
-                  </td>
-                </tr>
-              ) : (
-                products.map((product) => (
-                  <motion.tr
-                    key={product.id}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="border-b border-gray-100 hover:bg-primary-50 transition-colors"
-                  >
-                    <td className="py-3 px-2 text-sm">{product.name}</td>
-                    <td className="py-3 px-2 text-sm text-gray-500">{product.sku}</td>
-                    <td className="py-3 px-2 text-sm text-right font-medium">
-                      KES {product.selling_price}
-                    </td>
-                    <td className="py-3 px-2 text-sm text-right">
-                      <span className={`inline-block px-2 py-1 rounded-full text-xs ${
-                        product.stock_quantity < 10
-                          ? 'bg-red-100 text-red-600'
-                          : product.stock_quantity < 20
-                          ? 'bg-yellow-100 text-yellow-600'
-                          : 'bg-green-100 text-green-600'
-                      }`}>
-                        {product.stock_quantity}
-                      </span>
-                    </td>
-                    {isOwner && (
-                      <td className="py-3 px-2 text-sm text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <button
-                            onClick={() => {
-                              setEditingProduct(product);
-                              setShowForm(true);
-                            }}
-                            className="p-1 text-blue-500 hover:text-blue-600"
-                          >
-                            <FaEdit />
-                          </button>
-                          <button
-                            onClick={() => handleDelete(product.id)}
-                            className="p-1 text-red-500 hover:text-red-600"
-                          >
-                            <FaTrash />
-                          </button>
-                        </div>
-                      </td>
-                    )}
-                  </motion.tr>
-                ))
-              )}
-            </tbody>
-          </table>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {loading ? (
+            <div className="col-span-full text-center py-8 text-gray-400">Loading...</div>
+          ) : products.length === 0 ? (
+            <div className="col-span-full text-center py-8 text-gray-400">No products found</div>
+          ) : (
+            products.map((product) => (
+              <motion.div
+                key={product.id}
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow duration-200"
+              >
+                {/* Product Image */}
+                <div className="w-full h-48 bg-gray-100 overflow-hidden">
+                  {product.image_url ? (
+                    <img
+                      src={product.image_url}
+                      alt={product.name}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-gray-400">
+                      <div className="text-center">
+                        <FaImage className="text-4xl mx-auto mb-2" />
+                        <span className="text-sm">No image</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Product Info */}
+                <div className="p-4">
+                  <h3 className="font-medium text-gray-800 truncate">{product.name}</h3>
+                  <p className="text-sm text-gray-500 truncate">{product.sku}</p>
+                  <div className="flex items-center justify-between mt-2">
+                    <span className="text-primary-600 font-bold">
+                      {formatCurrency(product.selling_price)}
+                    </span>
+                    <span className={`text-xs px-2 py-1 rounded-full ${
+                      product.stock_quantity < 10
+                        ? 'bg-red-100 text-red-600'
+                        : product.stock_quantity < 20
+                        ? 'bg-yellow-100 text-yellow-600'
+                        : 'bg-green-100 text-green-600'
+                    }`}>
+                      {product.stock_quantity} in stock
+                    </span>
+                  </div>
+
+                  {isOwner && (
+                    <div className="flex items-center justify-end gap-2 mt-3 pt-3 border-t border-gray-100">
+                      <button
+                        onClick={() => {
+                          setEditingProduct(product);
+                          setShowForm(true);
+                        }}
+                        className="p-1.5 text-blue-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                        title="Edit"
+                      >
+                        <FaEdit />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(product.id)}
+                        className="p-1.5 text-red-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        title="Delete"
+                      >
+                        <FaTrash />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            ))
+          )}
         </div>
       </div>
 
-      {/* Product Form Modal */}
       {showForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-xl max-w-md w-full max-h-[90vh] overflow-y-auto"
+            className="bg-white rounded-xl max-w-md w-full max-h-[90vh] overflow-y-auto p-6 shadow-xl"
           >
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-bold text-gray-800">
-                  {editingProduct ? 'Edit Product' : 'Add Product'}
-                </h2>
-                <button
-                  onClick={() => {
-                    setShowForm(false);
-                    setEditingProduct(null);
-                  }}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  <FaTimes />
-                </button>
-              </div>
-              <ProductForm
-                product={editingProduct}
-                onSuccess={() => {
-                  setShowForm(false);
-                  setEditingProduct(null);
-                  fetchProducts();
-                }}
-                onCancel={() => {
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-gray-800">
+                {editingProduct ? 'Edit Product' : 'Add Product'}
+              </h2>
+              <button
+                onClick={() => {
                   setShowForm(false);
                   setEditingProduct(null);
                 }}
-              />
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <FaTimes className="text-xl" />
+              </button>
             </div>
+            <ProductForm
+              product={editingProduct}
+              onSuccess={() => {
+                setShowForm(false);
+                setEditingProduct(null);
+                fetchProducts();
+              }}
+              onCancel={() => {
+                setShowForm(false);
+                setEditingProduct(null);
+              }}
+            />
           </motion.div>
         </div>
       )}

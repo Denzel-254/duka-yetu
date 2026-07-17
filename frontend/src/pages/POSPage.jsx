@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { FaSearch, FaPlus, FaMinus, FaTrash, FaCashRegister } from 'react-icons/fa';
+import { motion, AnimatePresence } from 'framer-motion';
+import { FaSearch, FaPlus, FaMinus, FaTrash, FaCashRegister, FaShoppingCart, FaTimes } from 'react-icons/fa';
 import { toast } from 'react-hot-toast';
 import useCartStore from '../store/cartStore';
 import useAuthStore from '../store/authStore';
 import api from '../api/client';
+import { formatCurrency } from '../utils/helpers';
 
 const POSPage = () => {
   const [products, setProducts] = useState([]);
@@ -72,8 +73,14 @@ const POSPage = () => {
           <FaCashRegister className="text-primary-600" />
           Point of Sale
         </h1>
-        <div className="text-sm text-gray-500">
-          Cashier: {user?.name || 'Unknown'}
+        <div className="flex items-center gap-4">
+          <span className="text-sm text-gray-500">
+            Cashier: {user?.name || 'Unknown'}
+          </span>
+          <div className="flex items-center gap-1 text-sm text-gray-500">
+            <FaShoppingCart />
+            <span>{items.length} items</span>
+          </div>
         </div>
       </div>
 
@@ -88,45 +95,79 @@ const POSPage = () => {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="input-primary pl-10"
-                placeholder="Search products..."
+                placeholder="Search products by name or SKU..."
               />
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-[500px] overflow-y-auto">
-              {filteredProducts.map((product) => (
-                <motion.div
-                  key={product.id}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className={`p-4 rounded-lg cursor-pointer transition-all duration-200 ${
-                    product.stock_quantity > 0
-                      ? 'bg-primary-50 hover:bg-primary-100'
-                      : 'bg-gray-100 opacity-50 cursor-not-allowed'
-                  }`}
-                  onClick={() => {
-                    if (product.stock_quantity > 0) {
-                      addItem(product);
-                      toast.success(`${product.name} added to cart`);
-                    } else {
-                      toast.error('Out of stock');
-                    }
-                  }}
-                >
-                  <h3 className="font-medium text-sm text-gray-800">{product.name}</h3>
-                  <p className="text-xs text-gray-500">{product.sku}</p>
-                  <p className="text-primary-600 font-bold mt-1">
-                    KES {product.selling_price}
-                  </p>
-                  <p className={`text-xs ${product.stock_quantity < 10 ? 'text-red-500' : 'text-gray-500'}`}>
-                    Stock: {product.stock_quantity}
-                  </p>
-                </motion.div>
-              ))}
-            </div>
+            {loading ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="text-gray-400">Loading products...</div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 max-h-[550px] overflow-y-auto p-1">
+                {filteredProducts.map((product) => (
+                  <motion.div
+                    key={product.id}
+                    whileHover={{ scale: 1.03 }}
+                    whileTap={{ scale: 0.97 }}
+                    className={`rounded-xl overflow-hidden shadow-sm border cursor-pointer transition-all duration-200 ${
+                      product.stock_quantity > 0
+                        ? 'hover:shadow-md border-gray-200 hover:border-primary-300'
+                        : 'opacity-60 cursor-not-allowed border-gray-200'
+                    }`}
+                    onClick={() => {
+                      if (product.stock_quantity > 0) {
+                        addItem(product);
+                        toast.success(`${product.name} added to cart`);
+                      } else {
+                        toast.error('Out of stock');
+                      }
+                    }}
+                  >
+                    {/* Product Image */}
+                    <div className="w-full h-40 bg-gray-100 overflow-hidden">
+                      {product.image_url ? (
+                        <img
+                          src={product.image_url}
+                          alt={product.name}
+                          className="w-full h-full object-cover transition-transform duration-200 hover:scale-105"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-gray-400 bg-gray-50">
+                          <div className="text-center">
+                            <div className="text-4xl mb-1">📦</div>
+                            <span className="text-xs">No image</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
 
-            {filteredProducts.length === 0 && (
-              <div className="text-center py-8 text-gray-500">
-                No products found
+                    {/* Product Info */}
+                    <div className="p-3 bg-white">
+                      <h3 className="font-medium text-sm text-gray-800 truncate">{product.name}</h3>
+                      <div className="flex items-center justify-between mt-1">
+                        <span className="text-primary-600 font-bold text-sm">
+                          {formatCurrency(product.selling_price)}
+                        </span>
+                        <span className={`text-xs px-2 py-0.5 rounded-full ${
+                          product.stock_quantity < 10
+                            ? 'bg-red-100 text-red-600'
+                            : 'bg-green-100 text-green-600'
+                        }`}>
+                          {product.stock_quantity} in stock
+                        </span>
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            )}
+
+            {filteredProducts.length === 0 && !loading && (
+              <div className="text-center py-12 text-gray-500">
+                <div className="text-6xl mb-4">🔍</div>
+                <p>No products found</p>
+                <p className="text-sm text-gray-400 mt-1">Try adjusting your search</p>
               </div>
             )}
           </div>
@@ -135,87 +176,128 @@ const POSPage = () => {
         {/* Cart */}
         <div className="lg:col-span-1">
           <div className="card sticky top-4">
-            <h2 className="text-lg font-bold text-gray-800 mb-4">Cart</h2>
-            
-            <div className="space-y-2 max-h-[300px] overflow-y-auto">
-              {items.map((item) => (
-                <motion.div
-                  key={item.id}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold text-gray-800">Cart</h2>
+              {items.length > 0 && (
+                <button
+                  onClick={clearCart}
+                  className="text-sm text-red-500 hover:text-red-600 font-medium"
                 >
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-gray-800">{item.name}</p>
-                    <p className="text-xs text-gray-500">
-                      KES {item.selling_price} x {item.quantity}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                      className="p-1 text-gray-500 hover:text-primary-600 rounded"
-                    >
-                      <FaMinus className="text-xs" />
-                    </button>
-                    <span className="text-sm font-medium w-6 text-center">{item.quantity}</span>
-                    <button
-                      onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                      className="p-1 text-gray-500 hover:text-primary-600 rounded"
-                    >
-                      <FaPlus className="text-xs" />
-                    </button>
-                    <button
-                      onClick={() => removeItem(item.id)}
-                      className="p-1 text-gray-400 hover:text-red-500 rounded"
-                    >
-                      <FaTrash className="text-xs" />
-                    </button>
-                  </div>
-                </motion.div>
-              ))}
+                  Clear All
+                </button>
+              )}
+            </div>
+
+            <div className="space-y-2 max-h-[350px] overflow-y-auto">
+              <AnimatePresence>
+                {items.map((item) => (
+                  <motion.div
+                    key={item.id}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 20 }}
+                    className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                  >
+                    {/* Cart Item Image */}
+                    <div className="w-12 h-12 rounded-lg overflow-hidden bg-gray-200 flex-shrink-0">
+                      {item.image_url ? (
+                        <img
+                          src={item.image_url}
+                          alt={item.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">
+                          📦
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-800 truncate">{item.name}</p>
+                      <p className="text-xs text-gray-500">
+                        {formatCurrency(item.selling_price)} × {item.quantity}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                        className="p-1 text-gray-500 hover:text-primary-600 rounded"
+                      >
+                        <FaMinus className="text-xs" />
+                      </button>
+                      <span className="text-sm font-medium w-6 text-center">{item.quantity}</span>
+                      <button
+                        onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                        className="p-1 text-gray-500 hover:text-primary-600 rounded"
+                      >
+                        <FaPlus className="text-xs" />
+                      </button>
+                      <button
+                        onClick={() => removeItem(item.id)}
+                        className="p-1 text-gray-400 hover:text-red-500 rounded ml-1"
+                      >
+                        <FaTrash className="text-xs" />
+                      </button>
+                    </div>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
             </div>
 
             {items.length === 0 && (
-              <div className="text-center py-8 text-gray-400">
-                Cart is empty
+              <div className="text-center py-12 text-gray-400">
+                <div className="text-6xl mb-4">🛒</div>
+                <p>Cart is empty</p>
+                <p className="text-sm mt-1">Add products to start selling</p>
               </div>
             )}
 
-            <div className="border-t border-gray-200 pt-4 mt-4">
-              <div className="flex justify-between text-lg font-bold">
-                <span>Total:</span>
-                <span className="text-primary-600">KES {total.toFixed(2)}</span>
+            {items.length > 0 && (
+              <div className="border-t border-gray-200 pt-4 mt-4">
+                <div className="flex justify-between text-lg font-bold">
+                  <span>Total:</span>
+                  <span className="text-primary-600">{formatCurrency(total)}</span>
+                </div>
+
+                <button
+                  onClick={handleCheckout}
+                  disabled={loading}
+                  className="btn-primary w-full mt-4 py-3 text-lg"
+                >
+                  {loading ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <span className="animate-spin">⏳</span>
+                      Processing...
+                    </span>
+                  ) : (
+                    'Checkout'
+                  )}
+                </button>
               </div>
-
-              <button
-                onClick={handleCheckout}
-                disabled={items.length === 0 || loading}
-                className="btn-primary w-full mt-4 py-3 text-lg"
-              >
-                {loading ? 'Processing...' : 'Checkout'}
-              </button>
-
-              <button
-                onClick={clearCart}
-                className="btn-secondary w-full mt-2 py-2 text-sm"
-                disabled={items.length === 0}
-              >
-                Clear Cart
-              </button>
-            </div>
+            )}
           </div>
         </div>
       </div>
 
       {/* Receipt Modal */}
       {showReceipt && receiptData && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-xl max-w-md w-full max-h-[90vh] overflow-y-auto p-6"
+            className="bg-white rounded-xl max-w-md w-full max-h-[90vh] overflow-y-auto p-6 shadow-xl"
           >
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-gray-800">Receipt</h2>
+              <button
+                onClick={() => setShowReceipt(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <FaTimes className="text-xl" />
+              </button>
+            </div>
             <div
               className="prose prose-sm max-w-none"
               dangerouslySetInnerHTML={{ __html: receiptData.receipt_html }}

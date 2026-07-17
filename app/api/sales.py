@@ -1,12 +1,14 @@
 """Sales routes for Duka Yetu."""
 
 from fastapi import APIRouter, Depends, HTTPException, status, Query
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session
 from sqlalchemy import and_, desc
 from typing import Optional
 from uuid import UUID
 from datetime import datetime
 from decimal import Decimal
+import random
+import string
 
 from app.core.database import get_db
 from app.core.dependencies import get_current_user, get_cashier_user
@@ -24,6 +26,13 @@ from app.schemas.sale import (
 from app.utils.receipt_generator import generate_receipt_html
 
 router = APIRouter()
+
+def generate_receipt_number() -> str:
+    """Generate a unique receipt number."""
+    # Format: REC-YYYYMMDD-XXXX (where XXXX is random alphanumeric)
+    date_str = datetime.now().strftime("%Y%m%d")
+    random_part = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
+    return f"REC-{date_str}-{random_part}"
 
 @router.post("/", response_model=SaleReceiptResponse, status_code=status.HTTP_201_CREATED)
 async def create_sale(
@@ -74,8 +83,8 @@ async def create_sale(
         })
         products_to_update.append(product)
     
-    # Generate receipt number
-    receipt_number = f"REC-{datetime.now().strftime('%Y%m%d')}-{str(UUID(int=1))[:8]}"
+    # Generate unique receipt number
+    receipt_number = generate_receipt_number()
     
     # Create sale
     sale = Sale(
