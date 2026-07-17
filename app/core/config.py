@@ -3,7 +3,7 @@
 import os
 from typing import Optional, List
 from pydantic_settings import BaseSettings
-from pydantic import Field
+from pydantic import Field, field_validator
 
 class Settings(BaseSettings):
     """Application settings."""
@@ -35,11 +35,17 @@ class Settings(BaseSettings):
     
     BCRYPT_ROUNDS: int = Field(default=12, env="BCRYPT_ROUNDS")
     
-    # CORS
+    # CORS - Simple string that we'll parse
     CORS_ORIGINS: str = Field(
         default="*",
         env="CORS_ORIGINS"
     )
+    
+    def get_cors_origins(self) -> List[str]:
+        """Get CORS origins as a list."""
+        if self.CORS_ORIGINS == "*":
+            return ["*"]
+        return [origin.strip() for origin in self.CORS_ORIGINS.split(",") if origin.strip()]
     
     # Cloudinary
     CLOUDINARY_CLOUD_NAME: str = Field(
@@ -57,12 +63,6 @@ class Settings(BaseSettings):
     
     LOW_STOCK_THRESHOLD: int = Field(default=10, env="LOW_STOCK_THRESHOLD")
     FRONTEND_URL: str = Field(default="http://localhost:5173", env="FRONTEND_URL")
-    
-    def get_cors_origins(self) -> List[str]:
-        """Get CORS origins as a list."""
-        if self.CORS_ORIGINS == "*":
-            return ["*"]
-        return [origin.strip() for origin in self.CORS_ORIGINS.split(",") if origin.strip()]
     
     class Config:
         env_file = ".env"

@@ -38,11 +38,12 @@ export const users = {
   toggle: (id) => api.post(`/users/${id}/toggle`),
 };
 
+// frontend/src/api/endpoints.js - Update the upload endpoint
 export const upload = {
   image: (file) => {
     const formData = new FormData();
     formData.append('file', file);
-    return api.post('/upload', formData, {
+    return api.post('/upload/', formData, {  // ← Note the trailing slash
       headers: {
         'Content-Type': 'multipart/form-data',
       },

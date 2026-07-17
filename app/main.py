@@ -19,13 +19,14 @@ app = FastAPI(
     redoc_url="/redoc" if settings.DEBUG else None,
 )
 
-# CORS middleware - Allow all origins for development
+# ✅ CORS middleware - MUST be FIRST
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 # Trusted host middleware (security)
@@ -41,7 +42,6 @@ app.include_router(sales.router, prefix="/api/v1/sales", tags=["Sales"])
 app.include_router(dashboard.router, prefix="/api/v1/dashboard", tags=["Dashboard"])
 app.include_router(users_router, prefix="/api/v1", tags=["Users"])
 app.include_router(upload.router, prefix="/api/v1/upload", tags=["Upload"])
-
 
 @app.on_event("startup")
 async def startup_event():

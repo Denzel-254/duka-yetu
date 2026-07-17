@@ -61,7 +61,7 @@ const ProductForm = ({ product, onSuccess, onCancel }) => {
     formData.append('file', file);
 
     try {
-      const response = await api.post('/upload', formData, {
+      const response = await api.post('/upload/', formData, {  // ← Trailing slash
         headers: {
           'Content-Type': 'multipart/form-data',
         },
@@ -87,7 +87,7 @@ const ProductForm = ({ product, onSuccess, onCancel }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!isOwner) {
       toast.error('Only owners can manage products');
       return;
