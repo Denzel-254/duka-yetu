@@ -1,6 +1,6 @@
 """Application configuration management."""
 
-from typing import Optional
+from typing import Optional, List
 from pydantic_settings import BaseSettings
 from pydantic import ConfigDict, Field
 
@@ -31,15 +31,22 @@ class Settings(BaseSettings):
     BCRYPT_ROUNDS: int = Field(default=12)
 
     # CORS
-    CORS_ORIGINS: list[str] = Field(
-        default=["http://localhost:3000", "http://localhost:5173"]
+    CORS_ORIGINS: List[str] = Field(
+        default=["http://localhost:3000", "http://localhost:5173", "*"]
     )
+    ALLOWED_HOSTS: List[str] = Field(default=["*"])
 
     # Business rules
     LOW_STOCK_THRESHOLD: int = Field(default=10)
 
     # Frontend URL
     FRONTEND_URL: str = Field(default="http://localhost:5173")
+
+    # Cloudinary Settings
+    CLOUDINARY_CLOUD_NAME: str = Field(default="")
+    CLOUDINARY_API_KEY: str = Field(default="")
+    CLOUDINARY_API_SECRET: str = Field(default="")
+    CLOUDINARY_UPLOAD_PRESET: str = Field(default="duka_yetu")
 
     # Use ConfigDict instead of class Config
     model_config = ConfigDict(
