@@ -82,7 +82,9 @@ const CategoriesPage = () => {
             <FaTags className="text-primary-600" />
             Categories
           </h1>
-          <p className="text-gray-500 text-sm mt-1">Organize your products by categories</p>
+          <p className="text-gray-500 text-sm mt-1">
+            Create categories, then assign products to them when adding or editing a product
+          </p>
         </div>
         <button
           onClick={() => {

@@ -10,6 +10,7 @@ from app.core.database import get_db
 from app.core.dependencies import get_current_user, require_owner
 from app.models.user import User
 from app.models.product import Product
+from app.models.resources import Category
 from app.schemas.product import (
     ProductCreate,
     ProductUpdate,
@@ -18,6 +19,27 @@ from app.schemas.product import (
 )
 
 router = APIRouter()
+
+
+def _validate_category(db: Session, business_id, category_id: Optional[str]):
+    if not category_id:
+        return None
+    category = db.query(Category).filter(
+        Category.id == category_id,
+        Category.business_id == business_id,
+        Category.is_active == True,  # noqa: E712
+    ).first()
+    if not category:
+        raise HTTPException(status_code=400, detail="Category not found for this business")
+    return category.id
+
+
+def _product_response(product: Product) -> ProductResponse:
+    data = ProductResponse.model_validate(product)
+    data.category_name = product.category.name if product.category else None
+    if product.category_id:
+        data.category_id = str(product.category_id)
+    return data
 
 @router.post("/", response_model=ProductResponse, status_code=status.HTTP_201_CREATED)
 async def create_product(
@@ -42,16 +64,17 @@ async def create_product(
             detail=f"Product with SKU '{product_data.sku}' already exists"
         )
     
-    # Create product - NOW INCLUDING image_url
+    # Create product
     product = Product(
         business_id=current_user.business_id,
+        category_id=_validate_category(db, current_user.business_id, product_data.category_id),
         name=product_data.name,
         sku=product_data.sku,
         selling_price=product_data.selling_price,
         cost_price=product_data.cost_price,
         stock_quantity=product_data.stock_quantity,
         description=product_data.description,
-        image_url=product_data.image_url,  # ← THIS WAS MISSING!
+        image_url=product_data.image_url,
         is_active=True,
     )
     
@@ -59,7 +82,7 @@ async def create_product(
     db.commit()
     db.refresh(product)
     
-    return product
+    return _product_response(product)
 
 @router.get("/", response_model=ProductListResponse)
 async def list_products(
@@ -68,6 +91,7 @@ async def list_products(
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
     search: Optional[str] = Query(None, min_length=1),
+    category_id: Optional[str] = Query(None),
 ):
     """
     List all products for the current business.
@@ -77,7 +101,7 @@ async def list_products(
     # Base query
     query = db.query(Product).filter(
         Product.business_id == current_user.business_id,
-        Product.is_active == True
+        Product.is_active == True  # noqa: E712
     )
     
     # Search filter
@@ -89,6 +113,9 @@ async def list_products(
                 Product.description.ilike(f"%{search}%")
             )
         )
+
+    if category_id:
+        query = query.filter(Product.category_id == category_id)
     
     # Get total count
     total = query.count()
@@ -97,7 +124,7 @@ async def list_products(
     products = query.offset(skip).limit(limit).all()
     
     return ProductListResponse(
-        items=products,
+        items=[_product_response(p) for p in products],
         total=total,
         page=skip // limit + 1 if limit > 0 else 1,
         pages=(total + limit - 1) // limit if limit > 0 else 1,
@@ -124,7 +151,7 @@ async def get_product(
             detail="Product not found"
         )
     
-    return product
+    return _product_response(product)
 
 @router.put("/{product_id}", response_model=ProductResponse)
 async def update_product(
@@ -149,15 +176,18 @@ async def update_product(
             detail="Product not found"
         )
     
-    # Update fields
     update_data = product_data.dict(exclude_unset=True)
+    if "category_id" in update_data:
+        update_data["category_id"] = _validate_category(
+            db, current_user.business_id, update_data.get("category_id")
+        )
     for field, value in update_data.items():
         setattr(product, field, value)
     
     db.commit()
     db.refresh(product)
     
-    return product
+    return _product_response(product)
 
 @router.delete("/{product_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_product(
@@ -200,8 +230,8 @@ async def get_low_stock_products(
     threshold = 10  # Default threshold
     products = db.query(Product).filter(
         Product.business_id == current_user.business_id,
-        Product.is_active == True,
+        Product.is_active == True,  # noqa: E712
         Product.stock_quantity < threshold
     ).all()
     
-    return products
+    return [_product_response(p) for p in products]

@@ -308,6 +308,9 @@ async def mpesa_callback(request: Request, db: Session = Depends(get_db)):
         try:
             if payment.source == "MARKETPLACE":
                 _complete_marketplace_order(db, payment)
+            elif payment.source == "SUBSCRIPTION":
+                from app.api.subscription import activate_subscription_from_payment
+                activate_subscription_from_payment(db, payment)
             else:
                 _complete_sale_from_payment(db, payment)
         except Exception as exc:  # noqa: BLE001

@@ -77,6 +77,14 @@ class Settings(BaseSettings):
     # Marketplace commission percent taken from online orders
     MARKETPLACE_COMMISSION_PERCENT: float = Field(default=5.0)
 
+    # Platform subscription prices in KES (paid to platform M-Pesa)
+    PLAN_BASIC_MONTHLY_KES: int = Field(default=2500)
+    PLAN_BASIC_YEARLY_KES: int = Field(default=25000)
+    PLAN_PROFESSIONAL_MONTHLY_KES: int = Field(default=5000)
+    PLAN_PROFESSIONAL_YEARLY_KES: int = Field(default=50000)
+    PLAN_ENTERPRISE_MONTHLY_KES: int = Field(default=10000)
+    PLAN_ENTERPRISE_YEARLY_KES: int = Field(default=100000)
+
     # Use ConfigDict instead of class Config
     model_config = ConfigDict(
         env_file=".env",

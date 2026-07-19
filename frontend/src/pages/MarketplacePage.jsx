@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { FaSearch, FaShoppingCart, FaStar, FaStore } from 'react-icons/fa';
+import { FaSearch, FaShoppingCart, FaStore, FaSlidersH, FaTimes } from 'react-icons/fa';
 import { toast } from 'react-hot-toast';
 import api from '../api/client';
 import useMarketCartStore from '../store/marketCartStore';
@@ -8,16 +8,32 @@ import { formatCurrency } from '../utils/helpers';
 
 const MarketplacePage = () => {
   const [products, setProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [q, setQ] = useState('');
+  const [categoryId, setCategoryId] = useState('');
+  const [minPrice, setMinPrice] = useState('');
+  const [maxPrice, setMaxPrice] = useState('');
+  const [sort, setSort] = useState('newest');
   const [loading, setLoading] = useState(true);
+  const [mobileFilters, setMobileFilters] = useState(false);
   const addItem = useMarketCartStore((state) => state.addItem);
   const cartCount = useMarketCartStore((state) => state.items.length);
 
-  const load = async (search = '') => {
+  const load = async () => {
     setLoading(true);
     try {
-      const { data } = await api.get('/marketplace/products', { params: { q: search || undefined } });
-      setProducts(data.items || []);
+      const params = {
+        q: q || undefined,
+        category_id: categoryId || undefined,
+        min_price: minPrice || undefined,
+        max_price: maxPrice || undefined,
+      };
+      const { data } = await api.get('/marketplace/products', { params });
+      let items = data.items || [];
+      if (sort === 'price_asc') items = [...items].sort((a, b) => a.selling_price - b.selling_price);
+      if (sort === 'price_desc') items = [...items].sort((a, b) => b.selling_price - a.selling_price);
+      if (sort === 'name') items = [...items].sort((a, b) => a.name.localeCompare(b.name));
+      setProducts(items);
     } catch (error) {
       toast.error('Failed to load marketplace products');
     } finally {
@@ -26,91 +42,201 @@ const MarketplacePage = () => {
   };
 
   useEffect(() => {
-    load();
+    api.get('/marketplace/categories')
+      .then(({ data }) => setCategories(data || []))
+      .catch(() => setCategories([]));
   }, []);
 
+  useEffect(() => {
+    load();
+  }, [categoryId, sort]);
+
+  const Filters = () => (
+    <div className="space-y-6">
+      <div>
+        <h3 className="text-sm font-bold uppercase tracking-wide text-gray-800 mb-3">Categories</h3>
+        <div className="space-y-1">
+          <button
+            type="button"
+            onClick={() => setCategoryId('')}
+            className={`w-full text-left px-3 py-2 rounded-lg text-sm ${
+              !categoryId ? 'bg-primary-600 text-white' : 'hover:bg-primary-50 text-gray-700'
+            }`}
+          >
+            All products
+          </button>
+          {categories.map((cat) => (
+            <button
+              key={cat.id}
+              type="button"
+              onClick={() => setCategoryId(cat.id)}
+              className={`w-full text-left px-3 py-2 rounded-lg text-sm flex justify-between ${
+                categoryId === cat.id ? 'bg-primary-600 text-white' : 'hover:bg-primary-50 text-gray-700'
+              }`}
+            >
+              <span>{cat.name}</span>
+              <span className="opacity-70">{cat.product_count}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <h3 className="text-sm font-bold uppercase tracking-wide text-gray-800 mb-3">Price (KES)</h3>
+        <div className="flex gap-2">
+          <input
+            type="number"
+            value={minPrice}
+            onChange={(e) => setMinPrice(e.target.value)}
+            placeholder="Min"
+            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
+          />
+          <input
+            type="number"
+            value={maxPrice}
+            onChange={(e) => setMaxPrice(e.target.value)}
+            placeholder="Max"
+            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
+          />
+        </div>
+        <button type="button" onClick={load} className="btn-primary w-full mt-3 text-sm">
+          Apply filters
+        </button>
+      </div>
+    </div>
+  );
+
   return (
-    <div className="min-h-screen bg-[#f1f1f2]">
-      <header className="bg-[#f68b1e] text-white shadow">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center gap-4">
+    <div className="min-h-screen bg-primary-50/40">
+      <header className="bg-primary-800 text-white shadow-lg">
+        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center gap-4">
           <Link to="/shop" className="flex items-center gap-2 font-bold text-xl">
             <FaStore /> DukaMall
           </Link>
           <form
-            className="flex-1 flex"
+            className="flex-1 flex max-w-2xl"
             onSubmit={(e) => {
               e.preventDefault();
-              load(q);
+              load();
             }}
           >
             <input
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              className="w-full rounded-l-md px-4 py-2 text-gray-800"
-              placeholder="Search products, brands and categories"
+              className="w-full rounded-l-lg px-4 py-2.5 text-gray-800"
+              placeholder="Search products across verified shops"
             />
-            <button type="submit" className="bg-[#2e2e2e] px-4 rounded-r-md">
+            <button type="submit" className="bg-primary-600 hover:bg-primary-500 px-4 rounded-r-lg">
               <FaSearch />
             </button>
           </form>
-          <Link to="/shop/checkout" className="flex items-center gap-2 font-medium">
-            <FaShoppingCart /> Cart ({cartCount})
+          <button
+            type="button"
+            className="lg:hidden p-2 rounded-lg bg-white/10"
+            onClick={() => setMobileFilters(true)}
+          >
+            <FaSlidersH />
+          </button>
+          <Link to="/shop/checkout" className="flex items-center gap-2 font-medium bg-white/10 px-3 py-2 rounded-lg hover:bg-white/20">
+            <FaShoppingCart /> <span className="hidden sm:inline">Cart</span> ({cartCount})
           </Link>
-          <Link to="/" className="text-sm underline">Sell on Duka Yetu</Link>
+          <Link to="/" className="hidden md:inline text-sm text-primary-100 hover:text-white">
+            Sell on Duka Yetu
+          </Link>
         </div>
       </header>
 
       <main className="max-w-7xl mx-auto px-4 py-6">
-        <div className="bg-white rounded-lg p-4 mb-4 shadow-sm">
-          <h1 className="text-xl font-bold text-gray-800">Shop from verified Duka Yetu businesses</h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Products listed here are uploaded by approved POS merchants. Pay with M-Pesa STK Push.
-          </p>
-        </div>
+        <div className="flex flex-col lg:flex-row gap-6">
+          <aside className="hidden lg:block w-64 shrink-0">
+            <div className="bg-white rounded-xl border border-primary-100 shadow-sm p-5 sticky top-4">
+              <Filters />
+            </div>
+          </aside>
 
-        {loading ? (
-          <div className="text-center py-16 text-gray-400">Loading products...</div>
-        ) : products.length === 0 ? (
-          <div className="text-center py-16 text-gray-400">No products listed yet</div>
-        ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-            {products.map((product) => (
-              <div key={product.id} className="bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition">
-                <Link to={`/shop/product/${product.id}`}>
-                  <div className="aspect-square bg-gray-100">
-                    {product.image_url ? (
-                      <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-gray-300 text-4xl">
-                        <FaStore />
-                      </div>
-                    )}
-                  </div>
-                </Link>
-                <div className="p-3">
-                  <Link to={`/shop/product/${product.id}`} className="font-medium text-sm text-gray-800 line-clamp-2 hover:text-[#f68b1e]">
-                    {product.name}
-                  </Link>
-                  <p className="text-xs text-gray-400 mt-1">{product.business_name}</p>
-                  <div className="flex text-amber-400 text-xs mt-1">
-                    {[0, 1, 2, 3, 4].map((i) => <FaStar key={i} className={i < 4 ? '' : 'text-gray-200'} />)}
-                  </div>
-                  <p className="text-lg font-bold text-gray-900 mt-2">{formatCurrency(product.selling_price)}</p>
-                  <button
-                    onClick={() => {
-                      addItem(product);
-                      toast.success('Added to cart');
-                    }}
-                    className="mt-2 w-full py-2 rounded-md bg-[#f68b1e] hover:bg-[#e07b12] text-white text-sm font-semibold"
-                  >
-                    ADD TO CART
-                  </button>
-                </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">Shop verified stores</h1>
+                <p className="text-sm text-gray-500">{products.length} products available</p>
               </div>
-            ))}
+              <select
+                value={sort}
+                onChange={(e) => setSort(e.target.value)}
+                className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm"
+              >
+                <option value="newest">Newest</option>
+                <option value="price_asc">Price: Low to High</option>
+                <option value="price_desc">Price: High to Low</option>
+                <option value="name">Name A–Z</option>
+              </select>
+            </div>
+
+            {loading ? (
+              <div className="text-center py-20 text-gray-400">Loading products...</div>
+            ) : products.length === 0 ? (
+              <div className="text-center py-20 text-gray-400 bg-white rounded-xl border">No products match your filters</div>
+            ) : (
+              <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
+                {products.map((product) => (
+                  <div key={product.id} className="max-w-full overflow-hidden bg-white rounded-lg shadow-lg border border-gray-100 hover:shadow-xl transition-shadow">
+                    <div className="px-4 py-3">
+                      <Link to={`/shop/product/${product.id}`}>
+                        <h2 className="text-base font-bold text-gray-800 uppercase line-clamp-1 hover:text-primary-700">
+                          {product.name}
+                        </h2>
+                      </Link>
+                      <p className="mt-1 text-xs text-gray-500 line-clamp-2">
+                        {product.description || `Sold by ${product.business_name}`}
+                      </p>
+                      {product.category_name && (
+                        <span className="inline-block mt-2 text-[10px] uppercase tracking-wide bg-primary-50 text-primary-700 px-2 py-0.5 rounded">
+                          {product.category_name}
+                        </span>
+                      )}
+                    </div>
+                    <Link to={`/shop/product/${product.id}`}>
+                      {product.image_url ? (
+                        <img className="object-cover w-full h-44" src={product.image_url} alt={product.name} />
+                      ) : (
+                        <div className="w-full h-44 bg-primary-50 flex items-center justify-center text-primary-300">
+                          <FaStore className="text-4xl" />
+                        </div>
+                      )}
+                    </Link>
+                    <div className="flex items-center justify-between px-4 py-3 bg-primary-900">
+                      <h3 className="text-sm sm:text-base font-bold text-white">{formatCurrency(product.selling_price)}</h3>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          addItem(product);
+                          toast.success('Added to cart');
+                        }}
+                        className="px-2 py-1 text-[10px] sm:text-xs font-semibold text-primary-900 uppercase transition-colors duration-300 transform bg-white rounded hover:bg-primary-50 focus:outline-none"
+                      >
+                        Add to cart
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </main>
+
+      {mobileFilters && (
+        <div className="fixed inset-0 z-50 lg:hidden">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setMobileFilters(false)} />
+          <div className="absolute left-0 top-0 bottom-0 w-80 max-w-[85%] bg-white p-5 overflow-y-auto shadow-xl">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="font-bold text-gray-800">Filters</h2>
+              <button type="button" onClick={() => setMobileFilters(false)}><FaTimes /></button>
+            </div>
+            <Filters />
+          </div>
+        </div>
+      )}
     </div>
   );
 };

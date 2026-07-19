@@ -15,6 +15,7 @@ class ProductBase(BaseModel):
     stock_quantity: int = Field(0, ge=0)
     description: Optional[str] = Field(None, max_length=500)
     image_url: Optional[str] = Field(None, max_length=500)
+    category_id: Optional[str] = None
     
     @validator('selling_price')
     def validate_selling_price(cls, v):
@@ -30,9 +31,17 @@ class ProductBase(BaseModel):
             return round(v, 2)
         return v
 
+    @validator('category_id', pre=True)
+    def empty_category_to_none(cls, v):
+        if v == "" or v is None:
+            return None
+        return str(v)
+
+
 class ProductCreate(ProductBase):
     """Product creation request."""
     pass
+
 
 class ProductUpdate(BaseModel):
     """Product update request."""
@@ -43,6 +52,7 @@ class ProductUpdate(BaseModel):
     stock_quantity: Optional[int] = Field(None, ge=0)
     description: Optional[str] = Field(None, max_length=500)
     image_url: Optional[str] = Field(None, max_length=500)
+    category_id: Optional[str] = None
     is_active: Optional[bool] = None
     
     @validator('selling_price')
@@ -61,16 +71,26 @@ class ProductUpdate(BaseModel):
             return round(v, 2)
         return v
 
+    @validator('category_id', pre=True)
+    def empty_category_to_none(cls, v):
+        if v == "":
+            return None
+        if v is None:
+            return None
+        return str(v)
+
+
 class ProductResponse(ProductBase):
     """Product response."""
     id: str
     is_active: bool
+    category_name: Optional[str] = None
     created_at: datetime
     updated_at: datetime
     
     model_config = ConfigDict(from_attributes=True)
     
-    @validator('id', pre=True)
+    @validator('id', 'category_id', pre=True)
     def convert_uuid_to_str(cls, v):
         if isinstance(v, UUID):
             return str(v)

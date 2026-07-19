@@ -15,6 +15,7 @@ class Product(Base):
     
     id = Column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
     business_id = Column(Uuid(as_uuid=True), ForeignKey("businesses.id"), nullable=False)
+    category_id = Column(Uuid(as_uuid=True), ForeignKey("categories.id"), nullable=True, index=True)
     name = Column(String(255), nullable=False)
     sku = Column(String(100), nullable=False)
     selling_price = Column(Numeric(10, 2), nullable=False)
@@ -28,6 +29,7 @@ class Product(Base):
     
     # Relationships
     business = relationship("Business", back_populates="products")
+    category = relationship("Category", backref="products")
     sale_items = relationship("SaleItem", back_populates="product", cascade="all, delete-orphan")
     
     # Constraints

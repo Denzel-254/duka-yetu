@@ -18,6 +18,9 @@ const SubscriptionPage = () => {
   const [loading, setLoading] = useState(false);
   const [subscriptionStatus, setSubscriptionStatus] = useState('LOADING');
   const [currentPeriodEnd, setCurrentPeriodEnd] = useState(null);
+  const [mpesaPhone, setMpesaPhone] = useState('');
+  const [payPlanId, setPayPlanId] = useState(null);
+  const [mpesaStatus, setMpesaStatus] = useState('');
   const [usageStats, setUsageStats] = useState({
     users: 0, max_users: 3, branches: 0, max_branches: 1,
   });
@@ -112,13 +115,58 @@ const SubscriptionPage = () => {
       .catch((error) => toast.error(error.response?.data?.detail || 'Failed to load subscription'));
   }, []);
 
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
   const handleUpgrade = async (planId) => {
+    setPayPlanId(planId);
+  };
+
+  const handleMpesaPay = async () => {
+    if (!payPlanId) return;
+    if (!mpesaPhone.trim()) {
+      toast.error('Enter the M-Pesa phone number that will pay');
+      return;
+    }
+    setLoading(true);
+    setMpesaStatus('Sending STK Push to pay your subscription...');
+    try {
+      const { data } = await subscriptionApi.mpesaCheckout(payPlanId, billingCycle, mpesaPhone.trim());
+      toast.success(data.customer_message || 'STK Push sent');
+      for (let i = 0; i < 40; i += 1) {
+        const { data: status } = await subscriptionApi.mpesaStatus(data.payment_id);
+        if (status.status === 'COMPLETED') {
+          toast.success('Subscription activated!');
+          setPayPlanId(null);
+          setMpesaPhone('');
+          setMpesaStatus('');
+          const refreshed = await subscriptionApi.get();
+          setCurrentPlan(refreshed.data.plan.toLowerCase());
+          setSubscriptionStatus(refreshed.data.status);
+          setCurrentPeriodEnd(refreshed.data.current_period_end || refreshed.data.trial_ends_at);
+          return;
+        }
+        if (status.status === 'FAILED') {
+          throw new Error(status.result_desc || 'Payment failed');
+        }
+        setMpesaStatus('Waiting for M-Pesa PIN confirmation...');
+        await sleep(3000);
+      }
+      throw new Error('Timed out waiting for payment');
+    } catch (error) {
+      toast.error(error.response?.data?.detail || error.message || 'M-Pesa payment failed');
+      setMpesaStatus('');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleStripeCheckout = async (planId) => {
     setLoading(true);
     try {
       const { data } = await subscriptionApi.checkout(planId, billingCycle);
       window.location.assign(data.checkout_url);
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Unable to start checkout');
+      toast.error(error.response?.data?.detail || 'Unable to start Stripe checkout');
       setLoading(false);
     }
   };
@@ -259,7 +307,7 @@ const SubscriptionPage = () => {
                 <button
                   onClick={() => !isCurrent && handleUpgrade(plan.id)}
                   disabled={isCurrent || loading}
-                  className={`w-full py-3 rounded-lg font-medium transition-all duration-200 ${
+                  className={`w-full py-3 rounded-lg font-medium transition-all duration-200 flex items-center justify-center gap-2 ${
                     isCurrent
                       ? 'bg-green-50 text-green-600 cursor-default'
                       : plan.popular
@@ -267,13 +315,64 @@ const SubscriptionPage = () => {
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
-                  {isCurrent ? 'Current Plan' : loading ? 'Processing...' : plan.buttonText}
+                  {isCurrent ? 'Current Plan' : (<><FaMobileAlt /> Pay with M-Pesa</>)}
                 </button>
+                {!isCurrent && (
+                  <button
+                    type="button"
+                    onClick={() => handleStripeCheckout(plan.id)}
+                    disabled={loading}
+                    className="w-full mt-2 py-2 text-sm text-gray-500 hover:text-primary-700"
+                  >
+                    Or pay with card (Stripe)
+                  </button>
+                )}
               </div>
             </motion.div>
           );
         })}
       </div>
+
+      {payPlanId && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-xl space-y-4">
+            <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+              <FaMobileAlt className="text-primary-600" />
+              Pay {payPlanId} with M-Pesa
+            </h3>
+            <p className="text-sm text-gray-500">
+              Payment goes to the platform M-Pesa account. Enter the phone that will receive the STK Push.
+            </p>
+            <input
+              type="tel"
+              value={mpesaPhone}
+              onChange={(e) => setMpesaPhone(e.target.value)}
+              className="input-primary bg-white text-gray-800"
+              placeholder="07XXXXXXXX"
+              disabled={loading}
+            />
+            {mpesaStatus && <p className="text-xs text-primary-700">{mpesaStatus}</p>}
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => { setPayPlanId(null); setMpesaStatus(''); }}
+                className="btn-secondary flex-1"
+                disabled={loading}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleMpesaPay}
+                className="btn-primary flex-1"
+                disabled={loading}
+              >
+                {loading ? 'Waiting...' : 'Send STK Push'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Billing Cycle Toggle */}
       <div className="flex items-center justify-center gap-4 py-2">

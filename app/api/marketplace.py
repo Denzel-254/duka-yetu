@@ -20,6 +20,7 @@ from app.models.business import Business
 from app.models.mpesa_transaction import MpesaTransaction
 from app.models.online_order import OnlineOrder
 from app.models.product import Product
+from app.models.resources import Category
 from app.services.mpesa import MpesaError, initiate_stk_push, resolve_credentials
 
 router = APIRouter()
@@ -45,11 +46,114 @@ class MarketProduct(BaseModel):
     image_url: Optional[str] = None
     business_id: str
     business_name: str
+    category_id: Optional[str] = None
+    category_name: Optional[str] = None
 
 
 class MarketProductList(BaseModel):
     items: List[MarketProduct]
     total: int
+
+
+class MarketCategory(BaseModel):
+    id: str
+    name: str
+    color: str = "#059669"
+    product_count: int = 0
+
+
+@router.get("/categories", response_model=List[MarketCategory])
+def list_marketplace_categories(db: Session = Depends(get_db)):
+    """Public categories that have active products from approved businesses."""
+    rows = (
+        db.query(Category)
+        .join(Product, Product.category_id == Category.id)
+        .join(Business, Business.id == Product.business_id)
+        .filter(
+            Category.is_active == True,  # noqa: E712
+            Product.is_active == True,  # noqa: E712
+            Product.stock_quantity > 0,
+            Business.approval_status == "APPROVED",
+            Business.is_active == True,  # noqa: E712
+        )
+        .distinct()
+        .order_by(Category.name)
+        .all()
+    )
+    result = []
+    for cat in rows:
+        count = (
+            db.query(Product)
+            .join(Business, Business.id == Product.business_id)
+            .filter(
+                Product.category_id == cat.id,
+                Product.is_active == True,  # noqa: E712
+                Product.stock_quantity > 0,
+                Business.approval_status == "APPROVED",
+            )
+            .count()
+        )
+        result.append(
+            MarketCategory(
+                id=str(cat.id),
+                name=cat.name,
+                color=cat.color or "#059669",
+                product_count=count,
+            )
+        )
+    return result
+
+
+@router.get("/products", response_model=MarketProductList)
+def list_marketplace_products(
+    db: Session = Depends(get_db),
+    q: Optional[str] = Query(None),
+    category_id: Optional[str] = Query(None),
+    min_price: Optional[float] = Query(None, ge=0),
+    max_price: Optional[float] = Query(None, ge=0),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(24, ge=1, le=100),
+):
+    """Public catalog of products from approved businesses."""
+    query = (
+        db.query(Product, Business)
+        .join(Business, Business.id == Product.business_id)
+        .filter(
+            Product.is_active == True,  # noqa: E712
+            Product.stock_quantity > 0,
+            Business.is_active == True,  # noqa: E712
+            Business.approval_status == "APPROVED",
+        )
+    )
+    if q:
+        like = f"%{q.strip()}%"
+        query = query.filter(or_(Product.name.ilike(like), Product.sku.ilike(like)))
+    if category_id:
+        query = query.filter(Product.category_id == category_id)
+    if min_price is not None:
+        query = query.filter(Product.selling_price >= min_price)
+    if max_price is not None:
+        query = query.filter(Product.selling_price <= max_price)
+
+    total = query.count()
+    rows = query.order_by(desc(Product.created_at)).offset(skip).limit(limit).all()
+    items = [
+        MarketProduct(
+            id=str(product.id),
+            name=product.name,
+            description=product.description,
+            sku=product.sku,
+            selling_price=product.selling_price,
+            stock_quantity=product.stock_quantity,
+            image_url=product.image_url,
+            business_id=str(business.id),
+            business_name=business.name,
+            category_id=str(product.category_id) if product.category_id else None,
+            category_name=product.category.name if product.category else None,
+        )
+        for product, business in rows
+    ]
+    return MarketProductList(items=items, total=total)
 
 
 class CheckoutItem(BaseModel):
@@ -85,47 +189,6 @@ class OrderStatusResponse(BaseModel):
     business_name: Optional[str] = None
 
 
-@router.get("/products", response_model=MarketProductList)
-def list_marketplace_products(
-    db: Session = Depends(get_db),
-    q: Optional[str] = Query(None),
-    skip: int = Query(0, ge=0),
-    limit: int = Query(24, ge=1, le=100),
-):
-    """Public catalog of products from approved businesses."""
-    query = (
-        db.query(Product, Business)
-        .join(Business, Business.id == Product.business_id)
-        .filter(
-            Product.is_active == True,  # noqa: E712
-            Product.stock_quantity > 0,
-            Business.is_active == True,  # noqa: E712
-            Business.approval_status == "APPROVED",
-        )
-    )
-    if q:
-        like = f"%{q.strip()}%"
-        query = query.filter(or_(Product.name.ilike(like), Product.sku.ilike(like)))
-
-    total = query.count()
-    rows = query.order_by(desc(Product.created_at)).offset(skip).limit(limit).all()
-    items = [
-        MarketProduct(
-            id=str(product.id),
-            name=product.name,
-            description=product.description,
-            sku=product.sku,
-            selling_price=product.selling_price,
-            stock_quantity=product.stock_quantity,
-            image_url=product.image_url,
-            business_id=str(business.id),
-            business_name=business.name,
-        )
-        for product, business in rows
-    ]
-    return MarketProductList(items=items, total=total)
-
-
 @router.get("/products/{product_id}", response_model=MarketProduct)
 def get_marketplace_product(product_id: UUID, db: Session = Depends(get_db)):
     row = (
@@ -152,6 +215,8 @@ def get_marketplace_product(product_id: UUID, db: Session = Depends(get_db)):
         image_url=product.image_url,
         business_id=str(business.id),
         business_name=business.name,
+        category_id=str(product.category_id) if product.category_id else None,
+        category_name=product.category.name if product.category else None,
     )
 
 

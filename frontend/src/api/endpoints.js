@@ -80,5 +80,11 @@ export const subscription = {
     plan: plan.toUpperCase(),
     billing_cycle: billingCycle,
   }),
+  mpesaCheckout: (plan, billingCycle, phone_number) => api.post('/subscription/mpesa-checkout', {
+    plan: plan.toUpperCase(),
+    billing_cycle: billingCycle,
+    phone_number,
+  }, { timeout: 45000 }),
+  mpesaStatus: (paymentId) => api.get(`/subscription/mpesa-status/${paymentId}`),
   portal: () => api.post('/subscription/portal'),
 };

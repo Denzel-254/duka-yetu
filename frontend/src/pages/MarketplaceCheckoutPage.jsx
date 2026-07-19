@@ -75,7 +75,7 @@ const MarketplaceCheckoutPage = () => {
           <p className="text-sm text-gray-500 mt-2">
             Seller: {orderResult.business_name}. Receipt: {orderResult.mpesa_receipt_number || '—'}
           </p>
-          <Link to="/shop" className="inline-block mt-6 px-4 py-2 rounded-md bg-[#f68b1e] text-white font-semibold">
+          <Link to="/shop" className="inline-block mt-6 px-4 py-2 rounded-md bg-primary-600 text-white font-semibold">
             Continue shopping
           </Link>
         </div>

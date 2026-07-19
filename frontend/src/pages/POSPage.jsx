@@ -4,7 +4,7 @@ import {
   FaSearch, FaPlus, FaMinus, FaTrash, FaCashRegister, 
   FaShoppingCart, FaTimes, FaBarcode, FaUser,
   FaCreditCard, FaMoneyBillWave, FaMobileAlt,
-  FaPrint, FaReceipt, FaStar
+  FaPrint, FaReceipt
 } from 'react-icons/fa';
 import { toast } from 'react-hot-toast';
 import useCartStore from '../store/cartStore';
@@ -26,6 +26,17 @@ const POSPage = () => {
   const [mpesaStatus, setMpesaStatus] = useState('');
   const { items, total, addItem, removeItem, updateQuantity, clearCart } = useCartStore();
   const user = useAuthStore((state) => state.user);
+
+  if (user && user.role !== 'CASHIER') {
+    return (
+      <div className="bg-white rounded-xl border border-amber-100 p-8 text-center">
+        <h1 className="text-xl font-bold text-gray-800">Cashiers only</h1>
+        <p className="text-gray-500 mt-2">
+          Owners manage products and settings. Only cashier accounts can make sales on the POS.
+        </p>
+      </div>
+    );
+  }
 
   useEffect(() => {
     fetchProducts();
@@ -172,67 +183,45 @@ const POSPage = () => {
                 <div className="text-gray-400">Loading products...</div>
               </div>
             ) : (
-              <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 max-h-[550px] overflow-y-auto p-1">
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 max-h-[550px] overflow-y-auto p-1">
                 {filteredProducts.map((product) => (
                   <motion.div
                     key={product.id}
-                    whileHover={{ scale: 1.02 }}
-                    className={`flex min-h-44 overflow-hidden rounded-xl bg-white shadow-sm border transition-all duration-200 ${
-                      product.stock_quantity > 0
-                        ? 'hover:shadow-md border-gray-200 hover:border-primary-300'
-                        : 'opacity-60 border-gray-200'
+                    whileHover={{ y: -2 }}
+                    className={`max-w-full overflow-hidden bg-white rounded-lg shadow-lg border border-gray-100 ${
+                      product.stock_quantity <= 0 ? 'opacity-60' : ''
                     }`}
                   >
-                    <div className="w-1/3 shrink-0 bg-primary-50 overflow-hidden">
-                      {product.image_url ? (
-                        <img
-                          src={product.image_url}
-                          alt={product.name}
-                          className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-primary-300">
-                          <div className="text-center">
-                            <FaBarcode className="text-3xl mx-auto mb-1" />
-                            <span className="text-xs">No image</span>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                    <div className="w-2/3 p-4 flex flex-col">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0">
-                          <h3 className="text-lg font-bold text-gray-800 truncate">{product.name}</h3>
-                          <p className="text-xs text-gray-400">{product.sku}</p>
-                        </div>
-                        <span className={`shrink-0 text-[11px] px-2 py-1 rounded-full ${
-                          product.stock_quantity < 10 ? 'bg-red-50 text-red-600' : 'bg-primary-50 text-primary-700'
-                        }`}>{product.stock_quantity} left</span>
-                      </div>
-                      <p className="mt-2 text-sm text-gray-500 line-clamp-2">
-                        {product.description || 'Ready to add to the current sale.'}
+                    <div className="px-4 py-3">
+                      <h3 className="text-lg font-bold text-gray-800 uppercase line-clamp-1">{product.name}</h3>
+                      <p className="mt-1 text-sm text-gray-500 line-clamp-2">
+                        {product.description || product.sku}
                       </p>
-                      <div className="flex items-center mt-2" aria-label="Product rating: 4 out of 5">
-                        {[0, 1, 2, 3, 4].map((star) => (
-                          <FaStar key={star} className={`w-4 h-4 ${star < 4 ? 'text-amber-400' : 'text-gray-200'}`} />
-                        ))}
+                    </div>
+                    {product.image_url ? (
+                      <img
+                        className="object-cover w-full h-40"
+                        src={product.image_url}
+                        alt={product.name}
+                      />
+                    ) : (
+                      <div className="w-full h-40 bg-primary-50 flex items-center justify-center text-primary-300">
+                        <FaBarcode className="text-4xl" />
                       </div>
-                      <div className="flex items-center justify-between gap-3 mt-auto pt-3">
-                        <span className="text-base font-bold text-primary-700">
-                          {formatCurrency(product.selling_price)}
-                        </span>
-                        <button
-                          type="button"
-                          disabled={product.stock_quantity <= 0}
-                          onClick={() => {
-                            addItem(product);
-                            toast.success(`${product.name} added to cart`);
-                          }}
-                          className="px-3 py-2 text-xs font-bold text-white uppercase bg-primary-700 rounded-lg hover:bg-primary-800 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
-                        >
-                          {product.stock_quantity > 0 ? 'Add to cart' : 'Out of stock'}
-                        </button>
-                      </div>
+                    )}
+                    <div className="flex items-center justify-between px-4 py-3 bg-primary-900">
+                      <h4 className="text-base font-bold text-white">{formatCurrency(product.selling_price)}</h4>
+                      <button
+                        type="button"
+                        disabled={product.stock_quantity <= 0}
+                        onClick={() => {
+                          addItem(product);
+                          toast.success(`${product.name} added to cart`);
+                        }}
+                        className="px-2 py-1 text-xs font-semibold text-primary-900 uppercase transition-colors duration-300 transform bg-white rounded hover:bg-primary-50 disabled:bg-gray-300 disabled:text-gray-500 focus:outline-none"
+                      >
+                        {product.stock_quantity > 0 ? 'Add to cart' : 'Out of stock'}
+                      </button>
                     </div>
                   </motion.div>
                 ))}

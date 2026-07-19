@@ -3,7 +3,7 @@ import { toast } from 'react-hot-toast';
 import { FaCloudUploadAlt, FaSpinner, FaTimes } from 'react-icons/fa';
 import useProductStore from '../../store/productStore';
 import useAuthStore from '../../store/authStore';
-import { upload } from '../../api/endpoints';
+import { upload, categories as categoriesApi } from '../../api/endpoints';
 
 const ProductForm = ({ product, onSuccess, onCancel }) => {
   const [formData, setFormData] = useState({
@@ -14,7 +14,9 @@ const ProductForm = ({ product, onSuccess, onCancel }) => {
     stock_quantity: '',
     description: '',
     image_url: '',
+    category_id: '',
   });
+  const [categoryOptions, setCategoryOptions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [imagePreview, setImagePreview] = useState('');
@@ -22,6 +24,12 @@ const ProductForm = ({ product, onSuccess, onCancel }) => {
   const { createProduct, updateProduct } = useProductStore();
   const user = useAuthStore((state) => state.user);
   const isOwner = user?.role === 'OWNER';
+
+  useEffect(() => {
+    categoriesApi.getAll()
+      .then(({ data }) => setCategoryOptions(data || []))
+      .catch(() => setCategoryOptions([]));
+  }, []);
 
   useEffect(() => {
     if (product) {
@@ -33,6 +41,7 @@ const ProductForm = ({ product, onSuccess, onCancel }) => {
         stock_quantity: product.stock_quantity || '',
         description: product.description || '',
         image_url: product.image_url || '',
+        category_id: product.category_id || '',
       });
       setImagePreview(product.image_url || '');
     }
@@ -93,6 +102,7 @@ const ProductForm = ({ product, onSuccess, onCancel }) => {
         selling_price: parseFloat(formData.selling_price),
         cost_price: parseFloat(formData.cost_price) || null,
         stock_quantity: parseInt(formData.stock_quantity) || 0,
+        category_id: formData.category_id || null,
       };
 
       if (product) {
@@ -136,6 +146,24 @@ const ProductForm = ({ product, onSuccess, onCancel }) => {
           placeholder="Enter SKU"
           required
         />
+      </div>
+
+      <div>
+        <label className="label-primary">Category</label>
+        <select
+          name="category_id"
+          value={formData.category_id}
+          onChange={handleChange}
+          className="input-primary bg-white text-gray-800"
+        >
+          <option value="">No category</option>
+          {categoryOptions.map((cat) => (
+            <option key={cat.id} value={cat.id}>{cat.name}</option>
+          ))}
+        </select>
+        <p className="text-xs text-gray-400 mt-1">
+          Create categories first, then assign products under them.
+        </p>
       </div>
 
       <div className="grid grid-cols-2 gap-4">

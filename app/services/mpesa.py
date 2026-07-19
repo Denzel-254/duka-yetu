@@ -79,6 +79,38 @@ def resolve_credentials(business_settings: dict) -> dict:
     }
 
 
+def resolve_platform_credentials() -> dict:
+    """Platform owner M-Pesa credentials (subscription billing)."""
+    consumer_key = (settings.MPESA_CONSUMER_KEY or "").strip()
+    consumer_secret = (settings.MPESA_CONSUMER_SECRET or "").strip()
+    passkey = (settings.MPESA_PASSKEY or "").strip()
+    shortcode = (settings.MPESA_SHORTCODE or "").strip()
+    missing = [
+        name
+        for name, value in [
+            ("consumer key", consumer_key),
+            ("consumer secret", consumer_secret),
+            ("passkey", passkey),
+            ("shortcode", shortcode),
+        ]
+        if not value
+    ]
+    if missing:
+        raise MpesaError(
+            "Platform M-Pesa is not configured. Set "
+            + ", ".join(missing)
+            + " in the backend environment."
+        )
+    return {
+        "consumer_key": consumer_key,
+        "consumer_secret": consumer_secret,
+        "passkey": passkey,
+        "shortcode": shortcode,
+        "account_type": "paybill",
+        "environment": settings.MPESA_ENVIRONMENT,
+    }
+
+
 def _base_url(environment: str) -> str:
     if environment == "production":
         return "https://api.safaricom.co.ke"

@@ -25,10 +25,10 @@ const MarketplaceProductPage = () => {
     <div className="min-h-screen bg-[#f1f1f2]">
       <div className="bg-white border-b">
         <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
-          <Link to="/shop" className="flex items-center gap-2 text-gray-600 hover:text-[#f68b1e]">
+          <Link to="/shop" className="flex items-center gap-2 text-gray-600 hover:text-primary-600">
             <FaArrowLeft /> Back to shop
           </Link>
-          <Link to="/shop/checkout" className="flex items-center gap-2 text-[#f68b1e] font-medium">
+          <Link to="/shop/checkout" className="flex items-center gap-2 text-primary-600 font-medium">
             <FaShoppingCart /> Cart
           </Link>
         </div>
@@ -58,7 +58,7 @@ const MarketplaceProductPage = () => {
               addItem(product);
               toast.success('Added to cart');
             }}
-            className="mt-6 w-full py-3 rounded-md bg-[#f68b1e] hover:bg-[#e07b12] text-white font-bold"
+            className="mt-6 w-full py-3 rounded-md bg-primary-600 hover:bg-primary-700 text-white font-bold"
           >
             ADD TO CART
           </button>

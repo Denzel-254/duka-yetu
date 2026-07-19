@@ -27,7 +27,7 @@ const LoginPage = () => {
         return;
       }
       toast.success('Welcome back!');
-      navigate('/dashboard');
+      navigate(result.user?.role === 'CASHIER' ? '/pos' : '/dashboard');
     } else {
       toast.error(result.error || 'Login failed');
     }

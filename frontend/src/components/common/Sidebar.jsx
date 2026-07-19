@@ -41,12 +41,12 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
 
   const navItems = [
     { path: '/dashboard', icon: FaHome, label: 'Dashboard', feature: 'basic_reports' },
-    { path: '/pos', icon: FaShoppingCart, label: 'POS', feature: 'pos' },
+    { path: '/pos', icon: FaShoppingCart, label: 'POS', feature: 'pos', cashierOnly: true },
     { path: '/orders', icon: FaClipboardList, label: 'Online Orders', feature: 'pos' },
   ];
 
   const inventoryItems = [
-    { path: '/products', icon: FaBoxes, label: 'All Products', feature: 'products' },
+    { path: '/products', icon: FaBoxes, label: 'All Products', feature: 'products', ownerOnly: true },
     { path: '/categories', icon: FaTags, label: 'Categories', feature: 'inventory', ownerOnly: true },
     { path: '/stock-management', icon: FaBarcode, label: 'Stock Management', feature: 'inventory', ownerOnly: true },
     { path: '/suppliers', icon: FaTruck, label: 'Suppliers', feature: 'suppliers', ownerOnly: true },
@@ -71,6 +71,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
   const isActive = (path) => location.pathname === path;
   const canAccess = (item) => {
     if (item.ownerOnly && user?.role !== 'OWNER') return false;
+    if (item.cashierOnly && user?.role !== 'CASHIER') return false;
     return !item.feature || (subscriptionActive && features.includes(item.feature));
   };
   const isInventoryActive = () => inventoryItems.some(({ path }) => location.pathname === path);

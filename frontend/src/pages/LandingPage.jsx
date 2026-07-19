@@ -123,7 +123,7 @@ const LandingPage = () => {
             <a href="#stories" className="hover:text-primary-700">Customers</a>
           </nav>
           <div className="flex items-center gap-3">
-            <Link to="/shop" className="hidden px-3 py-2 text-sm font-semibold text-orange-600 hover:text-orange-700 sm:block">
+            <Link to="/shop" className="hidden px-3 py-2 text-sm font-semibold text-primary-600 hover:text-primary-700 sm:block">
               DukaMall
             </Link>
             <Link to="/login" className="hidden px-3 py-2 text-sm font-semibold text-gray-700 hover:text-primary-700 sm:block">

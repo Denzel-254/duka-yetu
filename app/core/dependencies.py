@@ -149,7 +149,7 @@ def require_feature(feature: str):
 async def get_cashier_user(
     current_user: User = Depends(get_current_user),
 ) -> User:
-    """Allow staff roles that can operate the POS."""
+    """Only cashiers can operate the POS and create sales."""
     return await get_pos_user(current_user)
 
 
@@ -157,13 +157,13 @@ async def get_pos_user(
     current_user: User = Depends(get_current_user),
 ) -> User:
     """
-    Require a role that can create POS sales.
-    Owners/admins can also sell at the counter.
+    Require CASHIER role for POS sales.
+    Owners manage inventory/settings; cashiers sell.
     """
-    if current_user.role not in {"OWNER", "ADMIN", "MANAGER", "CASHIER"}:
+    if current_user.role != "CASHIER":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="You do not have permission to use the POS",
+            detail="Only cashiers can make sales on the POS",
         )
     return current_user
 
