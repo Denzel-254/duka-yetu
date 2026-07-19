@@ -1,4 +1,4 @@
-.PHONY: help install dev test lint format clean migrate
+.PHONY: help install dev test lint format clean migrate create-super-admin
 
 help:
 	@echo "Available commands:"
@@ -8,6 +8,7 @@ help:
 	@echo "  make lint       - Run linting"
 	@echo "  make format     - Format code"
 	@echo "  make migrate    - Run database migrations"
+	@echo "  make create-super-admin PASSWORD=YourPass1 - Create/reset super admin"
 	@echo "  make clean      - Clean cache files"
 
 install:
@@ -39,6 +40,9 @@ migrate:
 
 migration:
 	alembic revision --autogenerate -m "$(msg)"
+
+create-super-admin:
+	python scripts/create_super_admin.py --password "$(PASSWORD)"
 
 clean:
 	find . -type d -name "__pycache__" -exec rm -rf {} +

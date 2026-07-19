@@ -30,6 +30,17 @@ services:
       - CLOUDINARY_API_SECRET=${CLOUDINARY_API_SECRET}
       - CLOUDINARY_UPLOAD_PRESET=duka_yetu
       - FRONTEND_URL=${FRONTEND_URL:-http://localhost:3000}
+      - SUPER_ADMIN_USERNAME=${SUPER_ADMIN_USERNAME:-superadmin}
+      - SUPER_ADMIN_PASSWORD=${SUPER_ADMIN_PASSWORD:-}
+      - SUPER_ADMIN_EMAIL=${SUPER_ADMIN_EMAIL:-superadmin@dukayetu.local}
+      - MPESA_ENVIRONMENT=${MPESA_ENVIRONMENT:-sandbox}
+      - MPESA_CONSUMER_KEY=${MPESA_CONSUMER_KEY:-}
+      - MPESA_CONSUMER_SECRET=${MPESA_CONSUMER_SECRET:-}
+      - MPESA_PASSKEY=${MPESA_PASSKEY:-}
+      - MPESA_SHORTCODE=${MPESA_SHORTCODE:-174379}
+      - MPESA_CALLBACK_BASE_URL=${MPESA_CALLBACK_BASE_URL:-}
+      - API_BASE_URL=${API_BASE_URL:-http://localhost:8001}
+      - MARKETPLACE_COMMISSION_PERCENT=${MARKETPLACE_COMMISSION_PERCENT:-5}
       - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
       - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
       - STRIPE_BASIC_MONTHLY_PRICE_ID=${STRIPE_BASIC_MONTHLY_PRICE_ID}
@@ -44,6 +55,7 @@ services:
     volumes:
       - ./app:/app/app
       - ./tests:/app/tests
+      - ./scripts:/app/scripts
       - ./migrations:/app/migrations
       - ./alembic.ini:/app/alembic.ini
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
